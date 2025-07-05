@@ -1,18 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>HTML Viewer</title>
+    <title>CodeCraft Studio</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch_uncompressed.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            'bg': '#1a1b1e',
+                            'card': '#25262b',
+                            'border': '#2c2e33',
+                            'text': '#c1c2c5',
+                            'heading': '#ffffff'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style type="text/tailwindcss">
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            background: #e0f2fe;
+            @apply bg-blue-50 dark:bg-dark-bg text-gray-900 dark:text-dark-text;
             @apply overflow-hidden;
         }
         .editor-height {
@@ -23,17 +41,17 @@
             @apply overflow-y-auto;
         }
         .editor-container {
-            background: #fff;
-            border: 2px solid #1a1a1a;
+            @apply bg-white dark:bg-dark-card;
+            @apply border-2 border-gray-200 dark:border-dark-border;
             border-radius: 0.75rem;
             overflow: hidden;
             @apply shadow-sm flex flex-col;
         }
         .panel-header {
-            background: #60a5fa;
-            border-bottom: 2px solid #1a1a1a;
+            @apply bg-blue-400 dark:bg-indigo-900;
+            @apply border-b-2 border-gray-200 dark:border-dark-border;
             @apply px-4 py-2;
-            @apply font-semibold text-sm text-gray-900;
+            @apply font-semibold text-sm text-gray-900 dark:text-dark-text;
             flex-shrink: 0;
         }
         .action-btn {
@@ -129,166 +147,115 @@
         .xml-attribute-value {
             @apply text-green-600;
         }
+        .tool-card {
+            @apply bg-white dark:bg-dark-card;
+            @apply border-2 border-gray-200 dark:border-dark-border hover:border-indigo-500;
+            @apply p-6 rounded-xl shadow-lg transition-all duration-300 cursor-pointer;
+            @apply transform hover:-translate-y-1;
+        }
+        .tool-card .icon {
+            @apply bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300;
+        }
+        .tool-card h3 {
+            @apply text-gray-900 dark:text-dark-heading;
+        }
+        .tool-card p {
+            @apply text-gray-600 dark:text-dark-text;
+        }
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .dropdown {
+            @apply relative inline-block;
+        }
+        .dropdown-content {
+            @apply hidden absolute right-0 mt-2 w-48 rounded-md bg-white dark:bg-dark-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none;
+            z-index: 50;
+        }
+        .dropdown-content.show {
+            @apply block;
+        }
+        .dropdown-item {
+            @apply block px-4 py-2 text-sm text-gray-700 dark:text-dark-text hover:bg-gray-100 dark:hover:bg-dark-border cursor-pointer;
+        }
     </style>
     <script>
         // Add this at the start of your script section
-        let currentMode = 'html'; // or 'json'
+        let currentMode = 'home'; // 'home', 'html', 'json', 'diff', or 'python'
         
         function switchMode(mode) {
             currentMode = mode;
-            const mainContent = document.querySelector('.grid');
+            const mainContent = document.querySelector('.main-content > div');
             const heroTitle = document.getElementById('heroTitle');
             const heroSubtitle = document.getElementById('heroSubtitle');
+            const navLinks = document.querySelector('.nav-links');
             
-            if (mode === 'json') {
-                heroTitle.textContent = 'JSON Beautifier';
-                heroSubtitle.textContent = 'Try JSON Editor';
-                document.title = 'JSON Beautifier';
+            // Show/hide navigation links based on mode
+            if (mode === 'home') {
+                navLinks.classList.add('hidden');
+                heroTitle.textContent = 'CodeCraft Studio';
+                heroSubtitle.textContent = 'Your Ultimate Code Transformation Hub';
+                document.title = 'CodeCraft Studio';
                 
-                mainContent.innerHTML = '<div class="lg:col-span-5">' +
-                    '<div class="editor-container h-full">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>JSON Input</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="copyInput()" class="action-btn secondary" title="Copy">' +
-                    '<i class="material-icons text-base">content_copy</i>' +
-                    '</button>' +
-                    '<button onclick="clearInput(\'jsonInput\')" class="action-btn secondary" title="Clear">' +
-                    '<i class="material-icons text-base">delete</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<textarea id="jsonInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" ' +
-                    'placeholder="Enter your JSON here..."></textarea>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="lg:col-span-2 flex lg:flex-col justify-center items-center gap-3">' +
-                    '<button onclick="formatJSON()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">' +
-                    '<i class="material-icons">format_paint</i>' +
-                    'Format JSON' +
-                    '</button>' +
-                    '</div>' +
-                    '<div class="lg:col-span-5">' +
-                    '<div class="editor-container h-full">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>Formatted JSON</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="copyOutput()" class="action-btn secondary" title="Copy">' +
-                    '<i class="material-icons text-base">content_copy</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div id="jsonOutput" class="w-full editor-height p-4 font-mono text-sm overflow-auto"></div>' +
-                    '</div>' +
-                    '</div>';
-            } else if (mode === 'diff') {
-                heroTitle.textContent = 'Diff Checker';
-                heroSubtitle.textContent = 'Compare Text Differences';
-                document.title = 'Diff Checker';
-                
-                mainContent.innerHTML = '<div class="lg:col-span-12">' +
-                    '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(40vh-80px)]">' +
-                    '<!-- Original Text Panel -->' +
-                    '<div class="editor-container h-full">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>Original Text</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="clearInput(\'originalText\')" class="action-btn secondary" title="Clear">' +
-                    '<i class="material-icons text-base">delete</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<textarea id="originalText" class="w-full h-full p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" ' +
-                    'placeholder="Enter original text here..."></textarea>' +
-                    '</div>' +
-                    '<!-- Modified Text Panel -->' +
-                    '<div class="editor-container h-full">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>Modified Text</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="clearInput(\'modifiedText\')" class="action-btn secondary" title="Clear">' +
-                    '<i class="material-icons text-base">delete</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<textarea id="modifiedText" class="w-full h-full p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" ' +
-                    'placeholder="Enter modified text here..."></textarea>' +
-                    '</div>' +
-                    '</div>' +
-                    '<!-- Compare Button -->' +
-                    '<div class="flex justify-center my-4">' +
-                    '<button onclick="showDiff()" class="inline-flex items-center gap-x-2 rounded-lg bg-indigo-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">' +
-                    '<i class="material-icons">compare</i>' +
-                    'Compare' +
-                    '</button>' +
-                    '</div>' +
-                    '<!-- Diff Output Panel -->' +
-                    '<div class="editor-container h-[calc(40vh-80px)]">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>Differences</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="copyDiff()" class="action-btn secondary" title="Copy">' +
-                    '<i class="material-icons text-base">content_copy</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div id="diffOutput" class="w-full h-full p-4 font-mono text-sm overflow-auto"></div>' +
-                    '</div>' +
-                    '</div>';
-            } else if (mode === 'python') {
-                heroTitle.textContent = 'JSON to Python';
-                heroSubtitle.textContent = 'Convert JSON to Python Code';
-                document.title = 'JSON to Python Converter';
-                
-                mainContent.innerHTML = '<div class="lg:col-span-5">' +
-                    '<div class="editor-container h-full">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>JSON Input</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="copyInput()" class="action-btn secondary" title="Copy">' +
-                    '<i class="material-icons text-base">content_copy</i>' +
-                    '</button>' +
-                    '<button onclick="validateJSON()" class="action-btn secondary" title="Validate JSON">' +
-                    '<i class="material-icons text-base">check</i>' +
-                    '</button>' +
-                    '<button onclick="clearInput(\'jsonInput\')" class="action-btn secondary" title="Clear">' +
-                    '<i class="material-icons text-base">delete</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<textarea id="jsonInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" ' +
-                    'placeholder="Enter your JSON here..."></textarea>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="lg:col-span-2 flex lg:flex-col justify-center items-center gap-3">' +
-                    '<button onclick="convertToPython()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">' +
-                    '<i class="material-icons">code</i>' +
-                    'Convert to Python' +
-                    '</button>' +
-                    '<button onclick="downloadPython()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-gray-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">' +
-                    '<i class="material-icons">download</i>' +
-                    'Download .py' +
-                    '</button>' +
-                    '</div>' +
-                    '<div class="lg:col-span-5">' +
-                    '<div class="editor-container h-full">' +
-                    '<div class="panel-header flex justify-between items-center">' +
-                    '<span>Python Code</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<button onclick="copyOutput()" class="action-btn secondary" title="Copy">' +
-                    '<i class="material-icons text-base">content_copy</i>' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div id="pythonOutput" class="w-full editor-height p-4 font-mono text-sm overflow-auto bg-gray-50"></div>' +
-                    '</div>' +
-                    '</div>';
+                mainContent.innerHTML = `
+                    <div class="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 p-6 shadow-xl mb-4">
+                        <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">CodeCraft Studio</h2>
+                        <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Your Ultimate Code Transformation Hub</p>
+                    </div>
+                    <div class="home-grid">
+                        <div class="tool-card" onclick="switchMode('html')">
+                            <div class="icon">
+                                <i class="material-icons">code</i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">HTML Beautifier</h3>
+                            <p class="text-gray-600">Format, validate, and preview HTML code with syntax highlighting.</p>
+                        </div>
+                        
+                        <div class="tool-card" onclick="switchMode('json')">
+                            <div class="icon">
+                                <i class="material-icons">data_object</i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">JSON Beautifier</h3>
+                            <p class="text-gray-600">Format and validate JSON with an interactive tree view.</p>
+                        </div>
+                        
+                        <div class="tool-card" onclick="switchMode('diff')">
+                            <div class="icon">
+                                <i class="material-icons">compare</i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Diff Checker</h3>
+                            <p class="text-gray-600">Compare text differences with highlighted changes.</p>
+                        </div>
+                        
+                        <div class="tool-card" onclick="switchMode('python')">
+                            <div class="icon">
+                                <i class="material-icons">transform</i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">JSON to Python</h3>
+                            <p class="text-gray-600">Convert JSON to Python dictionary with proper formatting.</p>
+                        </div>
+                    </div>
+                `;
             } else {
+                navLinks.classList.remove('hidden');
+                
+                // Set up the header based on mode
+                if (mode === 'html') {
                 heroTitle.textContent = 'HTML Viewer';
                 heroSubtitle.textContent = 'Try HTML Editor';
                 document.title = 'HTML Viewer';
                 
                 mainContent.innerHTML = `
+                        <div class="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 p-6 shadow-xl mb-4">
+                            <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">HTML Viewer</h2>
+                            <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Try HTML Editor</p>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
                     <div class="lg:col-span-5">
                         <div class="editor-container h-full">
                             <div class="panel-header flex justify-between items-center">
@@ -327,10 +294,185 @@
 
                     <div class="lg:col-span-5">
                         <div class="editor-container h-full">
+                            <div class="panel-header flex justify-between items-center">
+                                <span>HTML Output</span>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="copyOutput()" class="action-btn secondary" title="Copy">
+                                        <i class="material-icons text-base">content_copy</i>
+                                    </button>
+                                </div>
+                            </div>
                             <iframe id="preview" class="w-full h-full border-none"></iframe>
                         </div>
                     </div>
+                </div>
+            `;
+                    
+                    // Initialize preview with empty message
+                    const preview = document.getElementById('preview');
+                    preview.contentDocument.open();
+                    preview.contentDocument.write('<p class="text-gray-500 text-center p-4">Click RUN to preview your HTML</p>');
+                    preview.contentDocument.close();
+                    
+                } else if (mode === 'json') {
+                    heroTitle.textContent = 'JSON Beautifier';
+                    heroSubtitle.textContent = 'Try JSON Editor';
+                    document.title = 'JSON Beautifier';
+                    
+                    mainContent.innerHTML = `
+                        <div class="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 p-6 shadow-xl mb-4">
+                            <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">JSON Beautifier</h2>
+                            <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Try JSON Editor</p>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+                            <div class="lg:col-span-5">
+                                <div class="editor-container h-full">
+                                    <div class="panel-header flex justify-between items-center">
+                                        <span>JSON Input</span>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="copyInput()" class="action-btn secondary" title="Copy">
+                                                <i class="material-icons text-base">content_copy</i>
+                                            </button>
+                                            <button onclick="clearInput('jsonInput')" class="action-btn secondary" title="Clear">
+                                                <i class="material-icons text-base">delete</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <textarea id="jsonInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                                        placeholder="Enter your JSON here..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2 flex lg:flex-col justify-center items-center gap-3">
+                                <button onclick="formatJSON()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                    <i class="material-icons">format_paint</i>
+                                    Format JSON
+                                </button>
+                            </div>
+
+                            <div class="lg:col-span-5">
+                                <div class="editor-container h-full">
+                                    <div class="panel-header flex justify-between items-center">
+                                        <span>Formatted JSON</span>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="copyOutput()" class="action-btn secondary" title="Copy">
+                                                <i class="material-icons text-base">content_copy</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="jsonOutput" class="w-full editor-height p-4 font-mono text-sm overflow-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (mode === 'diff') {
+                    heroTitle.textContent = 'Diff Checker';
+                    heroSubtitle.textContent = 'Compare Text Differences';
+                    document.title = 'Diff Checker';
+                    
+                    mainContent.innerHTML = `
+                        <div class="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 p-6 shadow-xl mb-4">
+                            <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Diff Checker</h2>
+                            <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Compare Text Differences</p>
+                        </div>
+                        <div class="lg:col-span-12">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(40vh-80px)]">
+                                <div class="editor-container h-full">
+                                    <div class="panel-header flex justify-between items-center">
+                                        <span>Original Text</span>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="clearInput('originalText')" class="action-btn secondary" title="Clear">
+                                                <i class="material-icons text-base">delete</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <textarea id="originalText" class="w-full h-full p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" 
+                                        placeholder="Enter original text here..."></textarea>
+                                </div>
+                                <div class="editor-container h-full">
+                                    <div class="panel-header flex justify-between items-center">
+                                        <span>Modified Text</span>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="clearInput('modifiedText')" class="action-btn secondary" title="Clear">
+                                                <i class="material-icons text-base">delete</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <textarea id="modifiedText" class="w-full h-full p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" 
+                                        placeholder="Enter modified text here..."></textarea>
+                                </div>
+                            </div>
+                            <div class="flex justify-center my-4">
+                                <button onclick="showDiff()" class="inline-flex items-center gap-x-2 rounded-lg bg-indigo-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                    <i class="material-icons">compare</i>
+                                    Compare
+                                </button>
+                            </div>
+                            <div class="editor-container h-[calc(40vh-80px)]">
+                                <div class="panel-header flex justify-between items-center">
+                                    <span>Differences</span>
+                                    <div class="flex items-center space-x-2">
+                                        <button onclick="copyDiff()" class="action-btn secondary" title="Copy">
+                                            <i class="material-icons text-base">content_copy</i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="diffOutput" class="w-full h-full p-4 font-mono text-sm overflow-auto"></div>
+                            </div>
+                        </div>
+                    `;
+                } else if (mode === 'python') {
+                    heroTitle.textContent = 'JSON to Python';
+                    heroSubtitle.textContent = 'Convert JSON to Python Dictionary';
+                    document.title = 'JSON to Python Converter';
+                    
+                    mainContent.innerHTML = `
+                        <div class="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 p-6 shadow-xl mb-4">
+                            <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">JSON to Python</h2>
+                            <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Convert JSON to Python Dictionary</p>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+                            <div class="lg:col-span-5">
+                                <div class="editor-container h-full">
+                                    <div class="panel-header flex justify-between items-center">
+                                        <span>JSON Input</span>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="copyInput()" class="action-btn secondary" title="Copy">
+                                                <i class="material-icons text-base">content_copy</i>
+                                            </button>
+                                            <button onclick="clearInput('jsonInput')" class="action-btn secondary" title="Clear">
+                                                <i class="material-icons text-base">delete</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <textarea id="jsonInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                                        placeholder="Enter your JSON here..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2 flex lg:flex-col justify-center items-center gap-3">
+                                <button onclick="convertToPython()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                    <i class="material-icons">code</i>
+                                    Convert
+                                </button>
+                            </div>
+
+                            <div class="lg:col-span-5">
+                                <div class="editor-container h-full">
+                                    <div class="panel-header flex justify-between items-center">
+                                        <span>Python Dictionary</span>
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="copyOutput()" class="action-btn secondary" title="Copy">
+                                                <i class="material-icons text-base">content_copy</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="pythonOutput" class="w-full editor-height p-4 font-mono text-sm overflow-auto"></div>
+                                </div>
+                        </div>
+                    </div>
                 `;
+                }
             }
         }
 
@@ -631,7 +773,7 @@
                 // Format the rest of the document
                 formatted += formatNode(doc.documentElement, 0);
                 
-                // Display formatted HTML in the preview
+                // Display formatted HTML in the preview with syntax highlighting
                 preview.contentDocument.open();
                 preview.contentDocument.write(`
                     <pre style="margin: 0; padding: 16px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.5; background: #f8f9fa;">
@@ -719,162 +861,152 @@
             window.getSelection().removeAllRanges();
         }
 
-        function validateJSON() {
-            const input = document.getElementById('jsonInput').value.trim();
-            if (!input) {
-                alert('Please enter JSON to validate');
-                return;
-            }
-            
-            try {
-                JSON.parse(input);
-                alert('Valid JSON!');
-            } catch (e) {
-                alert('Invalid JSON: ' + e.message);
-            }
-        }
-
         function convertToPython() {
             const input = document.getElementById('jsonInput');
             const output = document.getElementById('pythonOutput');
             let json = input.value.trim();
             
-            if (!json) {
-                output.innerHTML = '<div class="text-gray-500 text-center p-4">Enter JSON to convert to Python</div>';
-                return;
-            }
-            
             try {
                 const parsed = JSON.parse(json);
-                const python = jsonToPython(parsed, 0);
-                
-                // Add syntax highlighting
-                output.innerHTML = '<pre class="python-code">' +
-                    python.replace(/(".*?")/g, '<span class="text-green-600">$1</span>')
-                          .replace(/\b(True|False|None)\b/g, '<span class="text-purple-600">$1</span>')
-                          .replace(/(\[|\]|\{|\}|\(|\))/g, '<span class="text-amber-600">$1</span>')
-                          .replace(/(:)/g, '<span class="text-blue-600">$1</span>') +
-                    '</pre>';
+                const pythonDict = jsonToPython(parsed, 0);
+                output.innerHTML = '<pre class="language-python">' + pythonDict + '</pre>';
             } catch (e) {
-                output.innerHTML = '<div class="text-red-600">Error converting to Python: ' + e.message + '</div>';
+                output.innerHTML = '<div class="text-red-600">Invalid JSON: ' + e.message + '</div>';
             }
         }
 
-        function jsonToPython(obj, indent = 0) {
-            const indentStr = '    '.repeat(indent);
+        function jsonToPython(obj, level) {
+            const indent = '    '.repeat(level);
             
             if (obj === null) {
                 return 'None';
             }
-            
-            if (typeof obj === 'boolean') {
-                return obj ? 'True' : 'False';
-            }
-            
             if (typeof obj === 'string') {
-                // Escape quotes and special characters
-                const escaped = obj.replace(/\\/g, '\\\\')
-                                  .replace(/"/g, '\\"')
-                                  .replace(/\n/g, '\\n')
-                                  .replace(/\r/g, '\\r')
-                                  .replace(/\t/g, '\\t');
-                return `"${escaped}"`;
+                return `'${obj.replace(/'/g, "\\'")}'`;
             }
-            
-            if (typeof obj === 'number') {
-                return obj.toString();
+            if (typeof obj === 'number' || typeof obj === 'boolean') {
+                return String(obj);
             }
             
             if (Array.isArray(obj)) {
-                if (obj.length === 0) {
-                    return '[]';
-                }
+                if (obj.length === 0) return '[]';
                 
-                const items = obj.map(item => jsonToPython(item, indent + 1));
-                
-                if (items.join(', ').length <= 80) {
+                const items = obj.map(item => jsonToPython(item, level + 1));
+                if (items.join(', ').length <= 60) {
                     return `[${items.join(', ')}]`;
                 }
-                
-                return '[\n' +
-                    items.map(item => indentStr + '    ' + item).join(',\n') +
-                    '\n' + indentStr + ']';
+                return '[\n' + items.map(item => indent + '    ' + item).join(',\n') + '\n' + indent + ']';
             }
             
             if (typeof obj === 'object') {
                 const keys = Object.keys(obj);
-                if (keys.length === 0) {
-                    return '{}';
-                }
+                if (keys.length === 0) return '{}';
                 
                 const items = keys.map(key => {
-                    const keyStr = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `"${key}"`;
-                    return `${keyStr}: ${jsonToPython(obj[key], indent + 1)}`;
+                    const keyStr = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `'${key}'`;
+                    return `${keyStr}: ${jsonToPython(obj[key], level + 1)}`;
                 });
                 
-                if (items.join(', ').length <= 80) {
+                if (items.join(', ').length <= 60) {
                     return `{${items.join(', ')}}`;
                 }
-                
-                return '{\n' +
-                    items.map(item => indentStr + '    ' + item).join(',\n') +
-                    '\n' + indentStr + '}';
+                return '{\n' + items.map(item => indent + '    ' + item).join(',\n') + '\n' + indent + '}';
             }
             
             return String(obj);
         }
 
-        function downloadPython() {
-            const input = document.getElementById('jsonInput').value.trim();
-            if (!input) {
-                alert('Please enter JSON to convert');
-                return;
-            }
+        // Add theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.querySelector('.theme-icon');
             
-            try {
-                const parsed = JSON.parse(input);
-                const python = 'data = ' + jsonToPython(parsed, 0);
-                
-                const blob = new Blob([python], { type: 'text/plain' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'converted.py';
-                a.click();
-                window.URL.revokeObjectURL(url);
-            } catch (e) {
-                alert('Error converting to Python: ' + e.message);
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                themeIcon.textContent = 'light_mode';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                themeIcon.textContent = 'dark_mode';
+                localStorage.setItem('theme', 'dark');
             }
+        }
+
+        // Initialize theme from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const themeIcon = document.querySelector('.theme-icon');
+            
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeIcon.textContent = 'dark_mode';
+            } else {
+                themeIcon.textContent = 'light_mode';
+            }
+        });
+
+        function toggleToolsMenu() {
+            const dropdown = document.getElementById('toolsDropdown');
+            dropdown.classList.toggle('show');
+            
+            // Close the dropdown when clicking outside
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!e.target.closest('.dropdown')) {
+                    dropdown.classList.remove('show');
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
         }
     </script>
 </head>
 <body class="antialiased">
-    <header class="bg-white shadow-sm h-16">
+    <header class="bg-white dark:bg-dark-card shadow-sm h-16">
         <nav class="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8" aria-label="Global">
             <div class="flex lg:flex-1">
-                <a href="#" class="-m-1.5 p-1.5 text-xl font-semibold leading-6 text-gray-900">
-                    Text Formatter
-                </a>
             </div>
-            <div class="flex lg:gap-x-8">
-                <a href="#" onclick="switchMode('html')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">HTML BEAUTIFIER</a>
-                <a href="#" onclick="switchMode('json')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">JSON BEAUTIFIER</a>
-                <a href="#" onclick="switchMode('diff')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">DIFF CHECKER</a>
-                <a href="#" onclick="switchMode('python')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">JSON TO PYTHON</a>
-                <div class="relative group">
-                    <button type="button" class="flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900" aria-expanded="false">
-                        MORE
-                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                        </svg>
+            <div class="flex lg:gap-x-8 nav-links hidden">
+            </div>
+            <div class="flex lg:flex-1 lg:justify-end items-center space-x-4">
+                <button onclick="toggleTheme()" class="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-border">
+                    <i class="material-icons theme-icon">light_mode</i>
                     </button>
-                    <div class="absolute -right-8 top-full z-10 mt-3 w-40 rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5 hidden group-hover:block">
-                        <a href="#" class="block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50">JS BEAUTIFIER</a>
-                        <a href="#" class="block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50">YAML FORMATTER</a>
-                        <a href="#" class="block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50">SQL FORMATTER</a>
-                        <a href="#" class="block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50">MARKDOWN EDITOR</a>
+                <div class="dropdown">
+                    <button onclick="toggleToolsMenu()" class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                        <i class="material-icons text-sm">build</i>
+                        Tools
+                        <i class="material-icons text-sm">expand_more</i>
+                    </button>
+                    <div id="toolsDropdown" class="dropdown-content">
+                        <a onclick="switchMode('html')" class="dropdown-item">
+                            <div class="flex items-center">
+                                <i class="material-icons text-sm mr-2">code</i>
+                                HTML Beautifier
+                    </div>
+                        </a>
+                        <a onclick="switchMode('json')" class="dropdown-item">
+                            <div class="flex items-center">
+                                <i class="material-icons text-sm mr-2">data_object</i>
+                                JSON Beautifier
+                </div>
+                        </a>
+                        <a onclick="switchMode('diff')" class="dropdown-item">
+                            <div class="flex items-center">
+                                <i class="material-icons text-sm mr-2">compare</i>
+                                Diff Checker
+                            </div>
+                        </a>
+                        <a onclick="switchMode('python')" class="dropdown-item">
+                            <div class="flex items-center">
+                                <i class="material-icons text-sm mr-2">transform</i>
+                                JSON to Python
+                            </div>
+                        </a>
                     </div>
                 </div>
+                <button onclick="switchMode('home')" class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                    <i class="material-icons text-sm">home</i>
+                    Home
+                </button>
             </div>
         </nav>
     </header>
@@ -882,53 +1014,42 @@
     <main class="main-content">
         <div class="h-full px-4 py-4 sm:px-6 lg:px-8">
             <div class="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 p-6 shadow-xl mb-4">
-                <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">HTML Viewer</h2>
-                <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Try HTML Editor</p>
+                <h2 id="heroTitle" class="text-3xl font-bold tracking-tight text-white sm:text-4xl">CodeCraft Studio</h2>
+                <p id="heroSubtitle" class="mt-2 text-lg text-blue-100">Your Ultimate Code Transformation Hub</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
-                <!-- Input Panel -->
-                <div class="lg:col-span-5">
-                    <div class="editor-container h-full">
-                        <div class="panel-header flex justify-between items-center">
-                            <span id="inputLabel">HTML Input</span>
-                            <div class="flex items-center space-x-2">
-                                <button onclick="copyInput()" class="action-btn secondary" title="Copy">
-                                    <i class="material-icons text-base">content_copy</i>
-                                </button>
-                                <button onclick="checkInput()" class="action-btn secondary" title="Validate">
-                                    <i class="material-icons text-base">check</i>
-                                </button>
-                                <button onclick="clearInput()" class="action-btn secondary" title="Clear">
-                                    <i class="material-icons text-base">delete</i>
-                                </button>
+            <!-- Content will be dynamically inserted here -->
+            <div class="home-grid">
+                <div class="tool-card" onclick="switchMode('html')">
+                    <div class="icon">
+                        <i class="material-icons">code</i>
                             </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">HTML Beautifier</h3>
+                    <p class="text-gray-600">Format, validate, and preview HTML code with syntax highlighting.</p>
                         </div>
-                        <textarea id="htmlInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Enter your HTML here..."></textarea>
+                
+                <div class="tool-card" onclick="switchMode('json')">
+                    <div class="icon">
+                        <i class="material-icons">data_object</i>
                     </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">JSON Beautifier</h3>
+                    <p class="text-gray-600">Format and validate JSON with an interactive tree view.</p>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="lg:col-span-2 flex lg:flex-col justify-center items-center gap-3">
-                    <button id="runBtn" onclick="updatePreview()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
-                        <i class="material-icons">play_arrow</i>
-                        RUN
-                    </button>
-                    <button id="formatBtn" onclick="formatHTML()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                        <i class="material-icons">format_paint</i>
-                        Format
-                    </button>
-                    <button id="downloadBtn" onclick="downloadHTML()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-gray-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
-                        <i class="material-icons">download</i>
-                        Download
-                    </button>
+                <div class="tool-card" onclick="switchMode('diff')">
+                    <div class="icon">
+                        <i class="material-icons">compare</i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Diff Checker</h3>
+                    <p class="text-gray-600">Compare text differences with highlighted changes.</p>
                 </div>
 
-                <!-- Output Panel -->
-                <div class="lg:col-span-5">
-                    <div class="editor-container h-full" id="rightPanel">
-                        <iframe id="preview" class="w-full h-full border-none"></iframe>
+                <div class="tool-card" onclick="switchMode('python')">
+                    <div class="icon">
+                        <i class="material-icons">transform</i>
                     </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">JSON to Python</h3>
+                    <p class="text-gray-600">Convert JSON to Python dictionary with proper formatting.</p>
                 </div>
             </div>
         </div>
@@ -983,7 +1104,7 @@
                 // Format the rest of the document
                 formatted += formatNode(doc.documentElement, 0);
                 
-                // Display formatted HTML in the preview
+                // Display formatted HTML in the preview with syntax highlighting
                 preview.contentDocument.open();
                 preview.contentDocument.write(`
                     <pre style="margin: 0; padding: 16px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.5; background: #f8f9fa;">
