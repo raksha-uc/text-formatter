@@ -235,52 +235,52 @@
                     '<div id="diffOutput" class="w-full h-full p-4 font-mono text-sm overflow-auto"></div>' +
                     '</div>' +
                     '</div>';
-            } else if (mode === 'xml') {
-                heroTitle.textContent = 'XML Formatter';
-                heroSubtitle.textContent = 'Format and Validate XML';
-                document.title = 'XML Formatter';
+            } else if (mode === 'python') {
+                heroTitle.textContent = 'JSON to Python';
+                heroSubtitle.textContent = 'Convert JSON to Python Code';
+                document.title = 'JSON to Python Converter';
                 
                 mainContent.innerHTML = '<div class="lg:col-span-5">' +
                     '<div class="editor-container h-full">' +
                     '<div class="panel-header flex justify-between items-center">' +
-                    '<span>XML Input</span>' +
+                    '<span>JSON Input</span>' +
                     '<div class="flex items-center space-x-2">' +
                     '<button onclick="copyInput()" class="action-btn secondary" title="Copy">' +
                     '<i class="material-icons text-base">content_copy</i>' +
                     '</button>' +
-                    '<button onclick="validateXML()" class="action-btn secondary" title="Validate XML">' +
+                    '<button onclick="validateJSON()" class="action-btn secondary" title="Validate JSON">' +
                     '<i class="material-icons text-base">check</i>' +
                     '</button>' +
-                    '<button onclick="clearInput(\'xmlInput\')" class="action-btn secondary" title="Clear">' +
+                    '<button onclick="clearInput(\'jsonInput\')" class="action-btn secondary" title="Clear">' +
                     '<i class="material-icons text-base">delete</i>' +
                     '</button>' +
                     '</div>' +
                     '</div>' +
-                    '<textarea id="xmlInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" ' +
-                    'placeholder="Enter your XML here..."></textarea>' +
+                    '<textarea id="jsonInput" class="w-full editor-height p-4 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" ' +
+                    'placeholder="Enter your JSON here..."></textarea>' +
                     '</div>' +
                     '</div>' +
                     '<div class="lg:col-span-2 flex lg:flex-col justify-center items-center gap-3">' +
-                    '<button onclick="formatXML()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">' +
-                    '<i class="material-icons">format_paint</i>' +
-                    'Format XML' +
+                    '<button onclick="convertToPython()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">' +
+                    '<i class="material-icons">code</i>' +
+                    'Convert to Python' +
                     '</button>' +
-                    '<button onclick="downloadXML()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-gray-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">' +
+                    '<button onclick="downloadPython()" class="w-full inline-flex justify-center items-center gap-x-2 rounded-lg bg-gray-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">' +
                     '<i class="material-icons">download</i>' +
-                    'Download' +
+                    'Download .py' +
                     '</button>' +
                     '</div>' +
                     '<div class="lg:col-span-5">' +
                     '<div class="editor-container h-full">' +
                     '<div class="panel-header flex justify-between items-center">' +
-                    '<span>Formatted XML</span>' +
+                    '<span>Python Code</span>' +
                     '<div class="flex items-center space-x-2">' +
                     '<button onclick="copyOutput()" class="action-btn secondary" title="Copy">' +
                     '<i class="material-icons text-base">content_copy</i>' +
                     '</button>' +
                     '</div>' +
                     '</div>' +
-                    '<div id="xmlOutput" class="w-full editor-height p-4 font-mono text-sm overflow-auto"></div>' +
+                    '<div id="pythonOutput" class="w-full editor-height p-4 font-mono text-sm overflow-auto bg-gray-50"></div>' +
                     '</div>' +
                     '</div>';
             } else {
@@ -719,133 +719,132 @@
             window.getSelection().removeAllRanges();
         }
 
-        function formatXML() {
-            const input = document.getElementById('xmlInput');
-            const output = document.getElementById('xmlOutput');
-            let xml = input.value.trim();
-            
-            if (!xml) {
-                output.innerHTML = '<div class="text-gray-500 text-center p-4">Enter XML to format</div>';
+        function validateJSON() {
+            const input = document.getElementById('jsonInput').value.trim();
+            if (!input) {
+                alert('Please enter JSON to validate');
                 return;
             }
             
             try {
-                // Parse XML using DOMParser
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
+                JSON.parse(input);
+                alert('Valid JSON!');
+            } catch (e) {
+                alert('Invalid JSON: ' + e.message);
+            }
+        }
+
+        function convertToPython() {
+            const input = document.getElementById('jsonInput');
+            const output = document.getElementById('pythonOutput');
+            let json = input.value.trim();
+            
+            if (!json) {
+                output.innerHTML = '<div class="text-gray-500 text-center p-4">Enter JSON to convert to Python</div>';
+                return;
+            }
+            
+            try {
+                const parsed = JSON.parse(json);
+                const python = jsonToPython(parsed, 0);
                 
-                // Check for parsing errors
-                const parserError = doc.querySelector('parsererror');
-                if (parserError) {
-                    throw new Error(parserError.textContent);
-                }
-                
-                // Format the XML
-                const formatted = formatXMLNode(doc, 0);
-                
-                // Display with syntax highlighting
-                output.innerHTML = '<pre class="xml-formatted">' +
-                    formatted.replace(/&/g, '&amp;')
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;')
-                            .replace(/(".*?")/g, '<span class="xml-attribute-value">$1</span>')
-                            .replace(/(&lt;\/?[^\s&]+)/g, '<span class="xml-tag">$1</span>')
-                            .replace(/([^\s&]+)=/g, '<span class="xml-attribute">$1</span>=') +
+                // Add syntax highlighting
+                output.innerHTML = '<pre class="python-code">' +
+                    python.replace(/(".*?")/g, '<span class="text-green-600">$1</span>')
+                          .replace(/\b(True|False|None)\b/g, '<span class="text-purple-600">$1</span>')
+                          .replace(/(\[|\]|\{|\}|\(|\))/g, '<span class="text-amber-600">$1</span>')
+                          .replace(/(:)/g, '<span class="text-blue-600">$1</span>') +
                     '</pre>';
             } catch (e) {
-                output.innerHTML = '<div class="text-red-600">Error formatting XML: ' + e.message + '</div>';
+                output.innerHTML = '<div class="text-red-600">Error converting to Python: ' + e.message + '</div>';
             }
         }
 
-        function formatXMLNode(node, level) {
-            if (!node) return '';
+        function jsonToPython(obj, indent = 0) {
+            const indentStr = '    '.repeat(indent);
             
-            let result = '';
-            const indent = '    '.repeat(level);
-            
-            // Handle text nodes
-            if (node.nodeType === 3) {
-                const text = node.textContent.trim();
-                if (text) {
-                    result += indent + text + '\n';
-                }
-                return result;
+            if (obj === null) {
+                return 'None';
             }
             
-            // Handle document node
-            if (node.nodeType === 9) {
-                result += '<?xml version="1.0" encoding="UTF-8"?>\n';
-                for (let child of node.childNodes) {
-                    result += formatXMLNode(child, level);
-                }
-                return result;
+            if (typeof obj === 'boolean') {
+                return obj ? 'True' : 'False';
             }
             
-            // Handle element nodes
-            if (node.nodeType === 1) {
-                const tagName = node.tagName;
-                
-                // Get node attributes
-                const attrs = Array.from(node.attributes)
-                    .map(attr => `${attr.name}="${attr.value}"`)
-                    .join(' ');
-                
-                // Handle empty elements
-                if (!node.children.length && !node.textContent.trim()) {
-                    result += indent + '<' + tagName +
-                        (attrs ? ' ' + attrs : '') + '/>\n';
-                    return result;
-                }
-                
-                // Opening tag
-                result += indent + '<' + tagName +
-                    (attrs ? ' ' + attrs : '') + '>\n';
-                
-                // Handle children
-                for (let child of node.childNodes) {
-                    result += formatXMLNode(child, level + 1);
-                }
-                
-                // Closing tag
-                result += indent + '</' + tagName + '>\n';
+            if (typeof obj === 'string') {
+                // Escape quotes and special characters
+                const escaped = obj.replace(/\\/g, '\\\\')
+                                  .replace(/"/g, '\\"')
+                                  .replace(/\n/g, '\\n')
+                                  .replace(/\r/g, '\\r')
+                                  .replace(/\t/g, '\\t');
+                return `"${escaped}"`;
             }
             
-            return result;
+            if (typeof obj === 'number') {
+                return obj.toString();
+            }
+            
+            if (Array.isArray(obj)) {
+                if (obj.length === 0) {
+                    return '[]';
+                }
+                
+                const items = obj.map(item => jsonToPython(item, indent + 1));
+                
+                if (items.join(', ').length <= 80) {
+                    return `[${items.join(', ')}]`;
+                }
+                
+                return '[\n' +
+                    items.map(item => indentStr + '    ' + item).join(',\n') +
+                    '\n' + indentStr + ']';
+            }
+            
+            if (typeof obj === 'object') {
+                const keys = Object.keys(obj);
+                if (keys.length === 0) {
+                    return '{}';
+                }
+                
+                const items = keys.map(key => {
+                    const keyStr = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `"${key}"`;
+                    return `${keyStr}: ${jsonToPython(obj[key], indent + 1)}`;
+                });
+                
+                if (items.join(', ').length <= 80) {
+                    return `{${items.join(', ')}}`;
+                }
+                
+                return '{\n' +
+                    items.map(item => indentStr + '    ' + item).join(',\n') +
+                    '\n' + indentStr + '}';
+            }
+            
+            return String(obj);
         }
 
-        function validateXML() {
-            const input = document.getElementById('xmlInput');
-            const xml = input.value.trim();
-            
-            if (!xml) {
-                alert('Please enter XML to validate');
+        function downloadPython() {
+            const input = document.getElementById('jsonInput').value.trim();
+            if (!input) {
+                alert('Please enter JSON to convert');
                 return;
             }
             
             try {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const parserError = doc.querySelector('parsererror');
+                const parsed = JSON.parse(input);
+                const python = 'data = ' + jsonToPython(parsed, 0);
                 
-                if (parserError) {
-                    throw new Error(parserError.textContent);
-                }
-                
-                alert('XML is valid!');
+                const blob = new Blob([python], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted.py';
+                a.click();
+                window.URL.revokeObjectURL(url);
             } catch (e) {
-                alert('Invalid XML: ' + e.message);
+                alert('Error converting to Python: ' + e.message);
             }
-        }
-
-        function downloadXML() {
-            const xml = document.getElementById('xmlInput').value;
-            const blob = new Blob([xml], { type: 'text/xml' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'formatted.xml';
-            a.click();
-            window.URL.revokeObjectURL(url);
         }
     </script>
 </head>
@@ -861,7 +860,7 @@
                 <a href="#" onclick="switchMode('html')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">HTML BEAUTIFIER</a>
                 <a href="#" onclick="switchMode('json')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">JSON BEAUTIFIER</a>
                 <a href="#" onclick="switchMode('diff')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">DIFF CHECKER</a>
-                <a href="#" onclick="switchMode('xml')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">XML FORMATTER</a>
+                <a href="#" onclick="switchMode('python')" class="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600">JSON TO PYTHON</a>
                 <div class="relative group">
                     <button type="button" class="flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900" aria-expanded="false">
                         MORE
